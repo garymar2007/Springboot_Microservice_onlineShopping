@@ -1,5 +1,6 @@
 package com.gary.orderservice.service;
 
+import com.gary.orderservice.dto.InventoryResponse;
 import com.gary.orderservice.dto.OrderLineItemsDto;
 import com.gary.orderservice.dto.OrderRequest;
 import com.gary.orderservice.dto.OrderResponse;
@@ -9,8 +10,10 @@ import com.gary.orderservice.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -22,6 +25,8 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
 
+    private final WebClient webClient;
+
     public void placeOrder(OrderRequest orderRequest) {
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
@@ -30,7 +35,26 @@ public class OrderService {
                 .stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList()));
-        orderRepository.save(order);
+
+        List<String> skuCodeList = order.getOrderLineItemsList()
+                .stream()
+                .map(OrderLineItems::getSkuCode)
+                .toList();
+        //Invoke Inventory service to see whether product is in stock
+        InventoryResponse[] inventoryResponseArray = webClient.get()
+                .uri("http://localhost:8082/api/inventory",
+                        uriBuilder -> uriBuilder.queryParam("skuCode", skuCodeList).build())
+                .retrieve()
+                .bodyToMono(InventoryResponse[].class)
+                .block();
+
+        boolean result = Arrays.stream(inventoryResponseArray)
+                .allMatch(InventoryResponse::isInStock);
+        if(result) {
+            orderRepository.save(order);
+        } else {
+            throw new IllegalArgumentException("Product is out of stock, please try again later");
+        }
     }
 
     public List<OrderResponse> getAllOrders() {
@@ -51,13 +75,13 @@ public class OrderService {
     }
 
     private OrderLineItemsDto dtoToMap(OrderLineItems items) {
-        return new OrderLineItemsDto(items.getId(), items.getSkucode(),
+        return new OrderLineItemsDto(items.getId(), items.getSkuCode(),
                 items.getPrice(), items.getQuantity());
 
     }
 
     private OrderLineItems mapToDto(OrderLineItemsDto dto) {
-        return new OrderLineItems(dto.getId(), dto.getSkucode(),
+        return new OrderLineItems(dto.getId(), dto.getSkuCode(),
                 dto.getPrice(), dto.getQuantity());
 
     }

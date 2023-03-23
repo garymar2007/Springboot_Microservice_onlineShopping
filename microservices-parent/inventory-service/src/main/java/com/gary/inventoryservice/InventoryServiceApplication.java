@@ -1,6 +1,6 @@
 package com.gary.inventoryservice;
 
-import com.gary.inventoryservice.inventory.ProductInventory;
+import com.gary.inventoryservice.model.ProductInventory;
 import com.gary.inventoryservice.repository.InventoryRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
