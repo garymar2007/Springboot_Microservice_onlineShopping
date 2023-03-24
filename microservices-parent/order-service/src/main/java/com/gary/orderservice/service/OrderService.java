@@ -25,7 +25,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
 
-    private final WebClient webClient;
+    private final WebClient.Builder webClientBuilder;
 
     public void placeOrder(OrderRequest orderRequest) {
         Order order = new Order();
@@ -40,9 +40,10 @@ public class OrderService {
                 .stream()
                 .map(OrderLineItems::getSkuCode)
                 .toList();
-        //Invoke Inventory service to see whether product is in stock
-        InventoryResponse[] inventoryResponseArray = webClient.get()
-                .uri("http://localhost:8082/api/inventory",
+        //Invoke Inventory service to see whether product is in stock - block(): synchronous way
+        //Using eureka service discovery plus loadbalancer to invoke multiple instances of inventory-service.
+        InventoryResponse[] inventoryResponseArray = webClientBuilder.build().get()
+                .uri("http://inventory-service/api/inventory",
                         uriBuilder -> uriBuilder.queryParam("skuCode", skuCodeList).build())
                 .retrieve()
                 .bodyToMono(InventoryResponse[].class)
