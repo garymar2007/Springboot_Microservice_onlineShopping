@@ -8,6 +8,9 @@ import com.gary.orderservice.model.Order;
 import com.gary.orderservice.model.OrderLineItems;
 import com.gary.orderservice.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.sleuth.Span;
+import org.springframework.cloud.sleuth.Tracer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -21,11 +24,14 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class OrderService {
 
     private final OrderRepository orderRepository;
 
     private final WebClient.Builder webClientBuilder;
+
+    private final Tracer tracer;
 
     public String placeOrder(OrderRequest orderRequest) {
         Order order = new Order();
@@ -40,22 +46,30 @@ public class OrderService {
                 .stream()
                 .map(OrderLineItems::getSkuCode)
                 .toList();
-        //Invoke Inventory service to see whether product is in stock - block(): synchronous way
-        //Using eureka service discovery plus loadbalancer to invoke multiple instances of inventory-service.
-        InventoryResponse[] inventoryResponseArray = webClientBuilder.build().get()
-                .uri("http://inventory-service/api/inventory",
-                        uriBuilder -> uriBuilder.queryParam("skuCode", skuCodeList).build())
-                .retrieve()
-                .bodyToMono(InventoryResponse[].class)
-                .block();
 
-        boolean result = Arrays.stream(inventoryResponseArray)
-                .allMatch(InventoryResponse::isInStock);
-        if(result) {
-            orderRepository.save(order);
-            return "Order Placed Successfully";
-        } else {
-            throw new IllegalArgumentException("Product is out of stock, please try again later");
+        log.info("Calling inventory service");
+
+        Span inventoryServiceLookup = tracer.nextSpan().name("InverntoryServiceLookup");
+        try(Tracer.SpanInScope spanInSceope = tracer.withSpan(inventoryServiceLookup.start())){
+            //Invoke Inventory service to see whether product is in stock - block(): synchronous way
+            //Using eureka service discovery plus loadbalancer to invoke multiple instances of inventory-service.
+            InventoryResponse[] inventoryResponseArray = webClientBuilder.build().get()
+                    .uri("http://inventory-service/api/inventory",
+                            uriBuilder -> uriBuilder.queryParam("skuCode", skuCodeList).build())
+                    .retrieve()
+                    .bodyToMono(InventoryResponse[].class)
+                    .block();
+
+            boolean result = Arrays.stream(inventoryResponseArray)
+                    .allMatch(InventoryResponse::isInStock);
+            if(result) {
+                orderRepository.save(order);
+                return "Order Placed Successfully";
+            } else {
+                throw new IllegalArgumentException("Product is out of stock, please try again later");
+            }
+        }finally {
+            inventoryServiceLookup.end();
         }
     }
 
