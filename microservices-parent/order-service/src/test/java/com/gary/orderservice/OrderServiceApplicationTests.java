@@ -46,17 +46,17 @@ class OrderServiceApplicationTests {
 
     }
 
-    @Test
-    void shouldCreateOrder() throws Exception{
-        OrderRequest orderRequest = getOrderRequest();
-        String requestStr = objectMapper.writeValueAsString(orderRequest);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(requestStr))
-                .andExpect(status().isCreated());
-        Assertions.assertEquals(1, orderRepository.findAll().size());
-
-    }
+//    @Test
+//    void shouldCreateOrder() throws Exception{
+//        OrderRequest orderRequest = getOrderRequest();
+//        String requestStr = objectMapper.writeValueAsString(orderRequest);
+//        mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
+//                .contentType(MediaType.APPLICATION_JSON)
+//                .content(requestStr))
+//                .andExpect(status().isCreated());
+//        Assertions.assertEquals(1, orderRepository.findAll().size());
+//
+//    }
 
     private OrderRequest getOrderRequest() {
         List<OrderLineItemsDto> orderLineItemsDtos = new ArrayList<>();

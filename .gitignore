@@ -1,0 +1,6 @@
+/microservices-parent/api-gateway/target/
+/microservices-parent/discovery-server/target/
+/microservices-parent/inventory-service/target/
+/microservices-parent/notification-service/target/
+/microservices-parent/order-service/target/
+/microservices-parent/product-service/target/

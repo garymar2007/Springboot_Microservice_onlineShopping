@@ -1,9 +1,9 @@
+com\gary\orderservice\controller\OrderController.class
+com\gary\orderservice\dto\OrderRequest.class
+com\gary\orderservice\dto\OrderResponse.class
 com\gary\orderservice\OrderServiceApplication.class
 com\gary\orderservice\repository\OrderRepository.class
 com\gary\orderservice\dto\OrderLineItemsDto.class
 com\gary\orderservice\model\OrderLineItems.class
 com\gary\orderservice\service\OrderService.class
-com\gary\orderservice\controller\OrderController.class
-com\gary\orderservice\dto\OrderRequest.class
-com\gary\orderservice\dto\OrderResponse.class
 com\gary\orderservice\model\Order.class
